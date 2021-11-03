@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: posgtres-db
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: posgtres-db
+  template:
+    metadata:
+      labels:
+        app: posgtres-db
+    spec:
+      containers:
+      - name: posgtres-db
+        image: postgres:latest
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          valueFrom: 
+            secretKeyRef:
+              name: postgres-secret
+              key: psql-username
+        - name: POSTGRES_PASSWORD
+          valueFrom: 
+            secretKeyRef:
+              name: postgres-secret
+              key: psql-password
+        - name: PGDATA
+          value: /var/lib/postgresql/data
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-pvc
+      volumes:
+      - name: postgres-pvc
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: default 
+spec:
+  selector: 
+    app: posgtres-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+
